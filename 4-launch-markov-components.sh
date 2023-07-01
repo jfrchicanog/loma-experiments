@@ -7,10 +7,11 @@ BINDIR=$(dirname "$(readlink -f "$(type -P $0 || echo $0)")")
 
 slurm_job() {
     file=$1
-    alg=$2
-    NAME=${file%%_*.me.xz}
-    TEMP=${NAME##loma-extr-}
-    JOBNAME=loma-alg-${TEMP}-${alg}
+    perturbation=$2
+    n=$3
+    NAME=${file%%_*.al.xz}
+    TEMP=${NAME##loma-alg-}
+    JOBNAME=loma-trans-${TEMP}-${perturbation}
     cat <<EOF > kk.sh
 #!/usr/bin/env bash
 # The name to show in queue lists for this job:
@@ -20,7 +21,7 @@ slurm_job() {
 #SBATCH --cpus-per-task=1
 
 # Amount of RAM needed for this job:
-#SBATCH --mem=45gb
+#SBATCH --mem=25gb
 
 # The time the job will be running:
 #SBATCH --time=1-00:00:00
@@ -31,12 +32,16 @@ slurm_job() {
 
 # Set output and error files
 #SBATCH --error=$OUTDIR/${JOBNAME}_%J.stderr
-#SBATCH --output=$OUTDIR/${JOBNAME}_%J.al.xz
+#SBATCH --output=$OUTDIR/${JOBNAME}_%J.stdout
 
 # To load some software (you can show the list with 'module avail'):
 module load java
 
-java -jar EfficientHillClimbers-0.22.0-SNAPSHOT/EfficientHillClimbers-0.22.0-SNAPSHOT.jar lo-markov-algorithm <(xz -cd $OUTDIR/$file) $alg | xz
+
+for alpha in \$(seq 1 $((n-1))); do 
+	(>&2 echo alpha \$alpha)
+	java -jar EfficientHillClimbers-0.22.0-SNAPSHOT/EfficientHillClimbers-0.22.0-SNAPSHOT.jar lo-markov-transition <(xz -cd $OUTDIR/$file) $perturbation \$alpha | xz > $OUTDIR/${JOBNAME}-alpha\${alpha}.tr.xz
+done
 #echo \$COMMAND | xz
 #\$COMMAND | xz
 EOF
@@ -59,13 +64,13 @@ n=10
 k=2
 seed=0
 alg=drils
-for n in 20; do
-	for k in `seq 2 5`; do
-		for seed in `seq 0 9`; do
+perturbation=fixed-hamming
+for n in 20 ; do
+	for k in 5 ; do
+		for seed in `seq 19 19`; do
 			for alg in ils-non-elitist; do
-				$LAUNCHER `find $OUTDIR -name loma-extr-n${n}k${k}q${q}${mode}r${r}s${seed}\*.me.xz -printf "%f\n" ` $alg
+				$LAUNCHER `find $OUTDIR -name loma-alg-n${n}k${k}q${q}${mode}r${r}s${seed}-${alg}\*.al.xz -printf "%f\n" ` $perturbation $n
 			done
 		done
 	done
 done
-

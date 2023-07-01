@@ -27,7 +27,7 @@ slurm_job() {
 #SBATCH --cpus-per-task=1
 
 # Amount of RAM needed for this job:
-#SBATCH --mem=15gb
+#SBATCH --mem=35gb
 
 # The time the job will be running:
 #SBATCH --time=1-00:00:00
@@ -62,9 +62,9 @@ k=2
 q=100
 r=1
 mode=random
-for n in 10 15 20 25; do
-	for k in `seq 2 5`; do
-		for seed in `seq 0 9`; do 
+for n in 15; do
+	for k in 4; do
+		for seed in 6; do 
 			$LAUNCHER $n $k $q $mode $r $seed
 		done
 	done
